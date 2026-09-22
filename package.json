@@ -1,0 +1,39 @@
+{
+  "name": "repo-showcase",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed": "tsx --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1137.0",
+    "@aws-sdk/s3-request-presigner": "^3.1137.0",
+    "@octokit/auth-app": "^8.3.1",
+    "@supabase/supabase-js": "^2.116.0",
+    "next": "^16.3.5",
+    "octokit": "^5.0.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tar-stream": "^3.1.7",
+    "yazl": "^3.3.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/tar-stream": "^3.1.4",
+    "@types/yauzl": "^3.4.0",
+    "@types/yazl": "^3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.1",
+    "yauzl": "^3.4.0"
+  }
+}

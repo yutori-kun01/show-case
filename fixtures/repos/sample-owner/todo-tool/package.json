@@ -1,0 +1,10 @@
+{
+  "name": "todo-tool",
+  "version": "1.0.0",
+  "private": true,
+  "author": "sample-owner <sample-owner@example.com>",
+  "repository": { "type": "git", "url": "https://github.com/sample-owner/todo-tool.git" },
+  "bugs": { "url": "https://github.com/sample-owner/todo-tool/issues" },
+  "homepage": "https://github.com/sample-owner/todo-tool#readme",
+  "scripts": { "dev": "node src/index.js" }
+}
