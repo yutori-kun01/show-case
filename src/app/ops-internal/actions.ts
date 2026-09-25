@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOpsSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import type { ListingStatus, MaskRuleKind } from "@/lib/db/types";
+import type { AccessMode, ListingStatus, MaskRuleKind } from "@/lib/db/types";
 import { opsUrl } from "@/lib/opsPath";
 import { EMPTY_SETUP_CONFIG } from "@/lib/pipeline/templates";
 import { setRepoSelected, syncRepos } from "@/lib/services/repos";
 import { createSnapshot, publishSnapshot } from "@/lib/services/snapshots";
 import { MediaError, uploadMedia } from "@/lib/services/media";
+import { addViewers, removeViewer, setViewerStatus, updateSiteSettings } from "@/lib/services/access";
 import {
   parseDemoMedia,
   parseSetupConfig,
@@ -175,4 +176,40 @@ export async function closeReportAction(form: FormData): Promise<void> {
   await requireOpsSession();
   await db().update("reports", field(form, "id"), { status: "closed" });
   revalidatePath("/ops-internal/reports");
+}
+
+const ACCESS_MODES: AccessMode[] = ["open", "register", "allowlist"];
+
+/** 公開側の閲覧制限の設定を保存する。 */
+export async function saveAccessSettingsAction(form: FormData): Promise<void> {
+  const { creator } = await requireOpsSession();
+  const mode = field(form, "access_mode") as AccessMode;
+  if (!ACCESS_MODES.includes(mode)) throw new Error("閲覧制限の設定が正しくありません");
+  await updateSiteSettings(creator, { access_mode: mode, verify_email: field(form, "verify_email") === "1" });
+  revalidatePath("/ops-internal/viewers");
+}
+
+/** メールアドレスをまとめて登録する。結果は件数だけをURLに載せて表示する。 */
+export async function addViewersAction(form: FormData): Promise<void> {
+  const { creator } = await requireOpsSession();
+  const result = await addViewers(creator, field(form, "emails"), field(form, "note"));
+  const params = new URLSearchParams({
+    added: String(result.added.length),
+    existing: String(result.existing.length),
+    invalid: String(result.invalid.length),
+  });
+  revalidatePath("/ops-internal/viewers");
+  redirect(opsUrl(`/viewers?${params.toString()}`));
+}
+
+export async function setViewerStatusAction(form: FormData): Promise<void> {
+  const { creator } = await requireOpsSession();
+  await setViewerStatus(creator, field(form, "id"), field(form, "status") === "blocked" ? "blocked" : "active");
+  revalidatePath("/ops-internal/viewers");
+}
+
+export async function removeViewerAction(form: FormData): Promise<void> {
+  const { creator } = await requireOpsSession();
+  await removeViewer(creator, field(form, "id"));
+  revalidatePath("/ops-internal/viewers");
 }

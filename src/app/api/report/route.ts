@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { currentViewerAccess } from "@/lib/auth/viewer";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!(await currentViewerAccess()).allowed) {
+    return NextResponse.json({ message: "ログインしてください" }, { status: 401 });
+  }
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ message: "入力内容を確認してください" }, { status: 400 });

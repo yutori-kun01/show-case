@@ -29,6 +29,10 @@ export function middleware(request: NextRequest): NextResponse {
     return new NextResponse(null, { status: 404 });
   }
 
+  // 公開側だけをデプロイする構成では、運営側の入口そのものを置かない。
+  const opsDisabled = process.env.OPS_DISABLED === "1" || process.env.OPS_DISABLED === "true";
+  if (opsDisabled) return NextResponse.next();
+
   if (opsHost && host === opsHost) {
     const url = request.nextUrl.clone();
     url.pathname = `${INTERNAL_PREFIX}${pathname === "/" ? "" : pathname}`;

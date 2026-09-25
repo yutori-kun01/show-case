@@ -1,9 +1,14 @@
-/** データモデル（仕様書「データモデル」の7テーブル）。 */
+/** データモデル（仕様書「データモデル」の7テーブル＋閲覧制限の3テーブル）。 */
 
 export type ListingStatus = "draft" | "published" | "unlisted";
 export type SnapshotStatus = "pending" | "blocked" | "ready" | "published" | "archived";
 export type MaskRuleKind = "exclude" | "replace" | "ngword";
 export type ReportStatus = "open" | "closed";
+/** open: 誰でも見られる／register: メール登録した人だけ／allowlist: 運営が登録したメールだけ */
+export type AccessMode = "open" | "register" | "allowlist";
+export type ViewerStatus = "active" | "blocked";
+/** invited: 運営が登録した／self: 閲覧者が自分で登録した */
+export type ViewerSource = "invited" | "self";
 
 export interface Creator {
   id: string;
@@ -121,6 +126,40 @@ export interface Report {
   created_at: string;
 }
 
+/** 公開側の閲覧制限の設定。出品者ごとに1行。 */
+export interface SiteSettings {
+  id: string;
+  creator_id: string;
+  access_mode: AccessMode;
+  /** true ならメールに届く確認コードで本人確認する。 */
+  verify_email: boolean;
+  updated_at: string;
+  created_at: string;
+}
+
+/** 公開側を見られるメールアドレス。 */
+export interface Viewer {
+  id: string;
+  creator_id: string;
+  email: string;
+  status: ViewerStatus;
+  source: ViewerSource;
+  note: string;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+/** メールで送った確認コード。コードそのものは保存せず、HMACだけを持つ。 */
+export interface AccessCode {
+  id: string;
+  email: string;
+  code_hash: string;
+  expires_at: string;
+  attempts: number;
+  consumed_at: string | null;
+  created_at: string;
+}
+
 export interface Database {
   creators: Creator[];
   repos: Repo[];
@@ -129,6 +168,9 @@ export interface Database {
   snapshots: Snapshot[];
   downloads: Download[];
   reports: Report[];
+  site_settings: SiteSettings[];
+  viewers: Viewer[];
+  access_codes: AccessCode[];
 }
 
 export type TableName = keyof Database;

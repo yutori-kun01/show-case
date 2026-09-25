@@ -3,6 +3,7 @@ import { requireOpsSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { opsUrl } from "@/lib/opsPath";
+import { getSiteSettings } from "@/lib/services/access";
 import { OpsNav } from "./OpsNav";
 import { signOutAction } from "./login/actions";
 
@@ -10,12 +11,14 @@ export const dynamic = "force-dynamic";
 
 export default async function OpsHomePage() {
   const { email, creator } = await requireOpsSession();
-  const [repos, listings, snapshots, downloads, reports] = await Promise.all([
+  const [repos, listings, snapshots, downloads, reports, viewers, settings] = await Promise.all([
     db().select("repos", { creator_id: creator.id }),
     db().select("listings", { creator_id: creator.id }),
     db().select("snapshots"),
     db().select("downloads"),
     db().select("reports", { status: "open" }),
+    db().select("viewers", { creator_id: creator.id }),
+    getSiteSettings(creator),
   ]);
 
   return (
@@ -52,6 +55,13 @@ export default async function OpsHomePage() {
               </td>
             </tr>
             <tr>
+              <th>閲覧者</th>
+              <td>
+                有効 {viewers.filter((viewer) => viewer.status === "active").length} 件（
+                {{ open: "誰でも見られる", register: "メール登録した人だけ", allowlist: "登録済みのメールだけ" }[settings.access_mode]}）
+              </td>
+            </tr>
+            <tr>
               <th>未対応の通報</th>
               <td>{reports.length} 件</td>
             </tr>
@@ -60,7 +70,7 @@ export default async function OpsHomePage() {
       </div>
 
       <div className="panel tight small muted">
-        接続先: DB={env.dbDriver} ／ ストレージ={env.storageDriver} ／ GitHub={env.githubDriver}
+        接続先: DB={env.dbDriver} ／ ストレージ={env.storageDriver} ／ GitHub={env.githubDriver} ／ メール={env.mailDriver}
         {env.dbDriver === "local" && "（ローカル代替で動作中。本番では環境変数を設定してください）"}
       </div>
 

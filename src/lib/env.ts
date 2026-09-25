@@ -21,6 +21,13 @@ function list(key: string): string[] {
     .filter(Boolean);
 }
 
+function secret(key: string, devFallback: string): string {
+  const value = optional(key);
+  if (value) return value;
+  if (process.env.NODE_ENV === "production") throw new Error(`本番では環境変数 ${key} を設定してください`);
+  return devFallback;
+}
+
 export const env = {
   optional,
   required,
@@ -29,9 +36,15 @@ export const env = {
   get dbDriver(): "local" | "supabase" {
     return optional("SUPABASE_URL") && optional("SUPABASE_SERVICE_ROLE_KEY") ? "supabase" : "local";
   },
-  /** local | r2 */
-  get storageDriver(): "local" | "r2" {
-    return optional("R2_BUCKET") && optional("R2_ACCESS_KEY_ID") ? "r2" : "local";
+  /** local | r2 | supabase。R2 が優先で、なければ Supabase Storage のバケット指定を見る。 */
+  get storageDriver(): "local" | "r2" | "supabase" {
+    if (optional("R2_BUCKET") && optional("R2_ACCESS_KEY_ID")) return "r2";
+    if (optional("SUPABASE_STORAGE_BUCKET") && this.dbDriver === "supabase") return "supabase";
+    return "local";
+  },
+  /** local | smtp */
+  get mailDriver(): "local" | "smtp" {
+    return optional("SMTP_HOST") ? "smtp" : "local";
   },
   /** local | github */
   get githubDriver(): "local" | "github" {
@@ -44,6 +57,10 @@ export const env = {
     const trimmed = raw.replace(/^\/+|\/+$/g, "");
     return `/${trimmed}`;
   },
+  /** true なら運営側の入口を閉じる（公開側だけをデプロイし、運営は手元のPCで行う構成）。 */
+  get opsDisabled(): boolean {
+    return optional("OPS_DISABLED") === "1" || optional("OPS_DISABLED") === "true";
+  },
   /** 運営側を独立ホストで運用する場合のホスト名（任意）。 */
   get opsHost(): string | undefined {
     return optional("OPS_HOST")?.toLowerCase();
@@ -52,11 +69,12 @@ export const env = {
   get opsAllowedEmails(): string[] {
     return list("OPS_ALLOWED_EMAILS");
   },
+  /** 本番で未設定のままだとセッションを偽造できてしまうため、開発用の値は本番では使わない。 */
   get sessionSecret(): string {
-    return optional("OPS_SESSION_SECRET") ?? "dev-only-insecure-session-secret";
+    return secret("OPS_SESSION_SECRET", "dev-only-insecure-session-secret");
   },
   get signingSecret(): string {
-    return optional("DOWNLOAD_SIGNING_SECRET") ?? "dev-only-insecure-signing-secret";
+    return secret("DOWNLOAD_SIGNING_SECRET", "dev-only-insecure-signing-secret");
   },
   /** 署名付きURLの有効期限（秒）。目安は10分。 */
   get downloadUrlTtlSeconds(): number {
@@ -65,6 +83,17 @@ export const env = {
   /** 同一メールアドレスのダウンロード回数制限（時間あたり）。 */
   get downloadRateLimitPerHour(): number {
     return Number(optional("DOWNLOAD_RATE_LIMIT_PER_HOUR") ?? 5);
+  },
+  /** 閲覧者のログインの有効期間（日）。 */
+  get viewerSessionDays(): number {
+    return Number(optional("VIEWER_SESSION_DAYS") ?? 30);
+  },
+  /** メールに書く公開側のURL（任意）。 */
+  get siteUrl(): string | undefined {
+    return optional("SITE_URL")?.replace(/\/+$/, "");
+  },
+  get siteName(): string {
+    return optional("SITE_NAME") ?? "リポジトリショーケース";
   },
   get dataDir(): string {
     return optional("LOCAL_DATA_DIR") ?? ".data";

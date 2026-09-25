@@ -5,13 +5,15 @@ import { useState } from "react";
 interface Props {
   slug: string;
   version: number;
+  /** ログイン中ならそのメールアドレスで記録し、入力欄を出さない。 */
+  viewerEmail?: string | null;
 }
 
 /**
  * メールアドレスを登録すると、有効期限付きの署名付きURLを受け取る。
  * ニュースレターの同意は未チェックが初期値。
  */
-export function DownloadForm({ slug, version }: Props) {
+export function DownloadForm({ slug, version, viewerEmail }: Props) {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
@@ -26,7 +28,7 @@ export function DownloadForm({ slug, version }: Props) {
       const response = await fetch("/api/download", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug, email, consent_newsletter: consent }),
+        body: JSON.stringify({ slug, email: viewerEmail ? undefined : email, consent_newsletter: consent }),
       });
       const payload = (await response.json()) as { url?: string; fileName?: string; expiresInSeconds?: number; message?: string };
       if (!response.ok || !payload.url) {
@@ -47,7 +49,7 @@ export function DownloadForm({ slug, version }: Props) {
       <div className="panel">
         <h2 style={{ marginTop: 0 }}>ダウンロードの準備ができました</h2>
         <p className="small muted">
-          リンクの有効期限は約{Math.round(grant.expiresInSeconds / 60)}分です。期限が切れたら、もう一度登録してください。
+          リンクの有効期限は約{Math.round(grant.expiresInSeconds / 60)}分です。期限が切れたら、ページを開き直してください。
         </p>
         <p>
           <a className="button" href={grant.url} download={grant.fileName}>
@@ -61,18 +63,24 @@ export function DownloadForm({ slug, version }: Props) {
   return (
     <form className="panel" onSubmit={onSubmit}>
       <h2 style={{ marginTop: 0 }}>ダウンロード（第{version}版）</h2>
-      <p className="small muted">
-        メールアドレスを登録すると、有効期限付きのリンクをその場でお渡しします。
-      </p>
-      <label htmlFor="email">メールアドレス</label>
-      <input
-        id="email"
-        type="email"
-        required
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        placeholder="you@example.com"
-      />
+      {viewerEmail ? (
+        <p className="small muted">有効期限付きのリンクをその場でお渡しします。</p>
+      ) : (
+        <>
+          <p className="small muted">
+            メールアドレスを登録すると、有効期限付きのリンクをその場でお渡しします。
+          </p>
+          <label htmlFor="email">メールアドレス</label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+          />
+        </>
+      )}
       <div className="checkbox">
         <input
           id="consent"

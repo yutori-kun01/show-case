@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { listPublicListings } from "@/lib/services/publicView";
+import { requireViewer } from "@/lib/auth/viewer";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const access = await requireViewer("/");
   const listings = await listPublicListings();
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader viewerEmail={access.viewer?.email} />
       <main className="container">
         <h1>公開中のツール</h1>
         <p className="lead">

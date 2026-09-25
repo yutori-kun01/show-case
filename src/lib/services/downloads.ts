@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { storage } from "@/lib/storage";
 import { publishedSnapshot } from "./snapshots";
 import { getPublishedListing } from "./publicView";
+import { EMAIL } from "./access";
 
 export interface DownloadRequest {
   slug: string;
@@ -31,8 +32,6 @@ export async function checkEntitlement(email: string): Promise<{ allowed: boolea
   }
   return { allowed: true };
 }
-
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** メール登録を記録し、有効期限付きの署名付きURLを返す。 */
 export async function requestDownload(request: DownloadRequest): Promise<DownloadGrant> {

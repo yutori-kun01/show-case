@@ -16,7 +16,7 @@ export default async function ReposPage() {
       <OpsNav current="/repos" />
       <h1>リポジトリ</h1>
       <p className="lead">
-        パブリックはユーザー名から、プライベートはGitHub Appのインストールから取り込みます。
+        個人トークン（GITHUB_TOKEN）なら自分のリポジトリを、GitHub App ならインストール先のリポジトリを取り込みます。
       </p>
 
       <form action={syncReposAction} className="row">

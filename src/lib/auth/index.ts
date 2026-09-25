@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
-import { db } from "@/lib/db";
+import { siteCreator } from "@/lib/services/access";
 import type { Creator } from "@/lib/db/types";
 import { SESSION_COOKIE, createSessionToken, readSessionToken, SESSION_MAX_AGE } from "./session";
 import { clearFailures, isLocked, registerFailure } from "./rateLimit";
@@ -26,6 +26,7 @@ export interface SignInResult {
  * なければローカル開発用のパスワードで確認する。どちらでも許可リストは必ず見る。
  */
 export async function signIn(email: string, password: string, context: { ip: string; userAgent: string }): Promise<SignInResult> {
+  if (env.opsDisabled) return { ok: false, message: "ログインできませんでした" };
   const normalized = email.trim().toLowerCase();
   const key = `${context.ip}:${normalized}`;
 
@@ -71,6 +72,7 @@ async function verifyPassword(email: string, password: string): Promise<boolean>
 
 /** 運営側の現在のログイン。未認証なら404（入口の存在を知らせない）。 */
 export async function requireOpsSession(): Promise<{ email: string; creator: Creator }> {
+  if (env.opsDisabled) notFound();
   const store = await cookies();
   const session = readSessionToken(store.get(SESSION_COOKIE)?.value);
   if (!session || !isAllowedEmail(session.email)) notFound();
@@ -79,13 +81,7 @@ export async function requireOpsSession(): Promise<{ email: string; creator: Cre
 
 /** フェーズ1は出品者1人。なければ作る。 */
 export async function currentCreator(): Promise<Creator> {
-  const existing = (await db().select("creators"))[0];
-  if (existing) return existing;
-  return db().insert("creators", {
-    display_name: env.optional("CREATOR_DISPLAY_NAME") ?? "運営",
-    github_login: env.optional("CREATOR_GITHUB_LOGIN") ?? null,
-    github_installation_id: env.optional("GITHUB_INSTALLATION_ID") ?? null,
-  });
+  return siteCreator();
 }
 
 export async function requestContext(): Promise<{ ip: string; userAgent: string }> {

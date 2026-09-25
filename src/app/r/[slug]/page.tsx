@@ -5,6 +5,7 @@ import { DownloadForm } from "@/components/DownloadForm";
 import { ReportForm } from "@/components/ReportForm";
 import { getPublishedListing, toPublicListing } from "@/lib/services/publicView";
 import { publishedSnapshot } from "@/lib/services/snapshots";
+import { currentViewerAccess, requireViewer } from "@/lib/auth/viewer";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  // 閲覧制限中は、ログイン前にタイトルや概要を漏らさない。
+  if (!(await currentViewerAccess()).allowed) return { title: "ログイン" };
   const listing = await getPublishedListing(slug);
   if (!listing) return { title: "見つかりません" };
   return { title: listing.title, description: listing.summary };
@@ -21,6 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ListingPage({ params }: Props) {
   const { slug } = await params;
+  const access = await requireViewer(`/r/${slug}`);
   const listing = await getPublishedListing(slug);
   if (!listing) notFound();
 
@@ -29,7 +33,7 @@ export default async function ListingPage({ params }: Props) {
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader viewerEmail={access.viewer?.email} />
       <main className="container">
         <h1>{view.title}</h1>
         <p className="lead">{view.summary}</p>
@@ -146,7 +150,7 @@ export default async function ListingPage({ params }: Props) {
         </section>
 
         {snapshot ? (
-          <DownloadForm slug={view.slug} version={snapshot.version} />
+          <DownloadForm slug={view.slug} version={snapshot.version} viewerEmail={access.viewer?.email} />
         ) : (
           <div className="panel">
             <p className="muted">配布できる版がまだありません。</p>

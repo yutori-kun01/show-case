@@ -13,6 +13,9 @@ const EMPTY: Database = {
   snapshots: [],
   downloads: [],
   reports: [],
+  site_settings: [],
+  viewers: [],
+  access_codes: [],
 };
 
 /**
