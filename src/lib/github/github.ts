@@ -23,10 +23,11 @@ export class GithubApi implements GithubAdapter {
 
   async listRepos(source: { login?: string; installationId?: string }): Promise<RemoteRepo[]> {
     const octokit = this.client(source.installationId);
+    // 個人トークンでは listForUser だと公開リポジトリしか返らないため、認証ユーザー本人の一覧を使う
     const repos = source.installationId
       ? await octokit.paginate(octokit.rest.apps.listReposAccessibleToInstallation, { per_page: 100 })
-      : await octokit.paginate(octokit.rest.repos.listForUser, {
-          username: source.login ?? "",
+      : await octokit.paginate(octokit.rest.repos.listForAuthenticatedUser, {
+          affiliation: "owner",
           per_page: 100,
         });
     return (repos as unknown as GithubRepoPayload[]).map(toRemoteRepo);
