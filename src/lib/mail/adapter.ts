@@ -4,7 +4,7 @@ export interface MailMessage {
   text: string;
 }
 
-/** メール送信のアダプタ。SMTP（Gmail、Resend など）とローカル代替が実装する。 */
+/** メール送信のアダプタ。Resend とローカル代替が実装する。 */
 export interface MailAdapter {
   send(message: MailMessage): Promise<void>;
 }

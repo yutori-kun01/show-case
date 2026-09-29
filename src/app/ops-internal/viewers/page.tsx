@@ -70,7 +70,7 @@ export default async function ViewersPage({ searchParams }: Props) {
         </div>
         <button type="submit">保存する</button>
         <p className="small muted" style={{ marginBottom: 0 }}>
-          メール送信: {env.mailDriver === "smtp" ? "SMTP で送信中" : "未設定（コードはコンソールと .data/mail.log に出ます）"}
+          メール送信: {env.mailDriver === "resend" ? "Resend で送信中" : "未設定（コードはコンソールと .data/mail.log に出ます）"}
           {env.siteUrl && (
             <>
               {" "}

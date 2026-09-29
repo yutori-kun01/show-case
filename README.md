@@ -48,7 +48,7 @@ src/
     db/                    DBアダプタ（Supabase / ローカルJSON）
     storage/               ストレージアダプタ（Cloudflare R2 / ローカルFS）
     github/                GitHubアダプタ（GitHub App・Octokit / fixtures）
-    mail/                  メール送信アダプタ（SMTP / ローカル）
+    mail/                  メール送信アダプタ（Resend / ローカル）
     pipeline/              除外・置換・検査・テンプレート生成・ZIP化
     services/              スナップショット、ダウンロード、閲覧制限、マスク設定の合成など
 supabase/migrations/       テーブル定義とRLS、公開用ビュー
@@ -64,7 +64,7 @@ tests/                     パイプラインと各サービスのテスト
 | ストレージ | Cloudflare R2 | `.data/storage/` | `R2_BUCKET`＋`R2_ACCESS_KEY_ID` |
 | ストレージ（別案） | Supabase Storage | 〃 | `SUPABASE_STORAGE_BUCKET`（Supabase 設定時） |
 | GitHub | GitHub App / トークン | `fixtures/repos/` | `GITHUB_APP_ID` または `GITHUB_TOKEN` |
-| メール | SMTP（Gmail など） | コンソールと `.data/mail.log` | `SMTP_HOST` |
+| メール | Resend | コンソールと `.data/mail.log` | `RESEND_API_KEY`＋`MAIL_FROM` |
 
 ## マスク・ZIP生成パイプライン
 
@@ -91,7 +91,7 @@ NGワード（`claude`、`anthropic`、`cursor`、`copilot`、`noreply` と出�
 | --- | --- | --- |
 | 公開側のホスティング | Netlify（Free） | 商用利用できる。月の上限を超えると止まるだけで、請求は来ない |
 | DB＋ファイル置き場 | Supabase（Free）＋ Supabase Storage | DB 500MB・ファイル 1GB。7日間アクセスがないと一時停止する（下記） |
-| メール送信 | Gmail の SMTP（アプリパスワード） | 独自ドメイン不要。1日500通まで |
+| メール送信 | Resend（Free） | 1日100通・月3,000通まで。差出人のドメイン認証が必要 |
 | 運営側 | 自分のPC（`npm run dev`） | ZIP生成に時間がかかっても平気で、GitHubトークンをサーバーに置かずに済む |
 
 Vercel の Hobby プランは非商用に限られます。講座（有料）の受講者向けなら Netlify を使うか、Vercel Pro にしてください。
@@ -100,9 +100,9 @@ Vercel の Hobby プランは非商用に限られます。講座（有料）の
 
 1. **Supabase** でプロジェクトを作り、SQL Editor で `supabase/migrations/0001_init.sql` と
    `0002_viewer_access.sql` を順に実行する。Storage で**非公開**のバケット（例: `showcase`）を作る
-2. **Gmail** で2段階認証を有効にし、アプリパスワードを発行する
+2. **Resend** で差出人のドメインを認証し、「Sending access」権限のAPIキーを発行する
 3. 自分のPCの `.env.local` に、Supabase（`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_STORAGE_BUCKET`）、
-   `GITHUB_TOKEN`、SMTP、`OPS_SESSION_SECRET`、`DOWNLOAD_SIGNING_SECRET` を設定して `npm run dev` で運営する
+   `GITHUB_TOKEN`、`RESEND_API_KEY`、`MAIL_FROM`、`OPS_SESSION_SECRET`、`DOWNLOAD_SIGNING_SECRET` を設定して `npm run dev` で運営する
 4. **Netlify** にこのリポジトリをつなぎ、同じ環境変数に加えて `OPS_DISABLED=1` と `SITE_URL` を設定してデプロイする。
    `GITHUB_TOKEN` は公開側に置かない。`OPS_SESSION_SECRET` と `DOWNLOAD_SIGNING_SECRET` は PC と同じ値にする
    （本番でこの2つが未設定だとエラーで止まる）

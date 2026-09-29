@@ -42,9 +42,9 @@ export const env = {
     if (optional("SUPABASE_STORAGE_BUCKET") && this.dbDriver === "supabase") return "supabase";
     return "local";
   },
-  /** local | smtp */
-  get mailDriver(): "local" | "smtp" {
-    return optional("SMTP_HOST") ? "smtp" : "local";
+  /** local | resend */
+  get mailDriver(): "local" | "resend" {
+    return optional("RESEND_API_KEY") ? "resend" : "local";
   },
   /** local | github */
   get githubDriver(): "local" | "github" {
