@@ -36,7 +36,7 @@ npm run dev
   オフにすると、メールアドレスを入れるだけで入れます
 - 一覧ではメールアドレスをまとめて貼り付けて登録でき、個別に停止・削除できます。
   停止した人は、ログイン済みでも次のページ表示から見られなくなります
-- ログインの有効期間は `VIEWER_SESSION_DAYS`（既定30日）です
+- ログインの有効期間は「セットアップ」画面で変えられます（既定30日）
 
 ## 構成
 
@@ -49,22 +49,24 @@ src/
     storage/               ストレージアダプタ（Cloudflare R2 / ローカルFS）
     github/                GitHubアダプタ（GitHub App・Octokit / fixtures）
     mail/                  メール送信アダプタ（Resend / ローカル）
+    config/                セットアップ画面の設定（DB＋環境変数の合成、秘密の値の暗号化）
     pipeline/              除外・置換・検査・テンプレート生成・ZIP化
     services/              スナップショット、ダウンロード、閲覧制限、マスク設定の合成など
 supabase/migrations/       テーブル定義とRLS、公開用ビュー
 tests/                     パイプラインと各サービスのテスト
 ```
 
-外部サービスはすべてアダプタ越しに使います。環境変数が設定されていればそちらを、
-なければローカル代替を選びます（運営側のホーム画面に現在の接続先が出ます）。
+外部サービスはすべてアダプタ越しに使います。設定されていればそちらを、なければローカル代替を選びます
+（運営側のホーム画面に現在の接続先が出ます）。メールと GitHub は運営側の「セットアップ」画面から設定でき、
+画面の設定が環境変数より優先されます。
 
 | 領域 | 本番 | ローカル代替 | 切り替える環境変数 |
 | --- | --- | --- | --- |
 | DB | Supabase | `.data/db.json` | `SUPABASE_URL`＋`SUPABASE_SERVICE_ROLE_KEY` |
 | ストレージ | Cloudflare R2 | `.data/storage/` | `R2_BUCKET`＋`R2_ACCESS_KEY_ID` |
-| ストレージ（別案） | Supabase Storage | 〃 | `SUPABASE_STORAGE_BUCKET`（Supabase 設定時） |
-| GitHub | GitHub App / トークン | `fixtures/repos/` | `GITHUB_APP_ID` または `GITHUB_TOKEN` |
-| メール | Resend | コンソールと `.data/mail.log` | `RESEND_API_KEY`＋`MAIL_FROM` |
+| ストレージ（別案） | Supabase Storage | 〃 | Supabase 接続時は自動（R2 未設定なら） |
+| GitHub | GitHub App / トークン | `fixtures/repos/` | セットアップ画面のトークン、または `GITHUB_APP_ID` |
+| メール | Resend | コンソールと `.data/mail.log` | セットアップ画面（または `RESEND_API_KEY`＋`MAIL_FROM`） |
 
 ## マスク・ZIP生成パイプライン
 
@@ -98,14 +100,21 @@ Vercel の Hobby プランは非商用に限られます。講座（有料）の
 
 ### 手順
 
-1. **Supabase** でプロジェクトを作り、SQL Editor で `supabase/migrations/0001_init.sql` と
-   `0002_viewer_access.sql` を順に実行する。Storage で**非公開**のバケット（例: `showcase`）を作る
-2. **Resend** で差出人のドメインを認証し、「Sending access」権限のAPIキーを発行する
-3. 自分のPCの `.env.local` に、Supabase（`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`SUPABASE_STORAGE_BUCKET`）、
-   `GITHUB_TOKEN`、`RESEND_API_KEY`、`MAIL_FROM`、`OPS_SESSION_SECRET`、`DOWNLOAD_SIGNING_SECRET` を設定して `npm run dev` で運営する
-4. **Netlify** にこのリポジトリをつなぎ、同じ環境変数に加えて `OPS_DISABLED=1` と `SITE_URL` を設定してデプロイする。
-   `GITHUB_TOKEN` は公開側に置かない。`OPS_SESSION_SECRET` と `DOWNLOAD_SIGNING_SECRET` は PC と同じ値にする
-   （本番でこの2つが未設定だとエラーで止まる）
+環境変数に書くのは、DB の接続先と鍵、運営側の入口だけです。メールや GitHub のキーは運営側の
+**「セットアップ」画面**から入れます（暗号化してDBに保存され、公開側にも反映されます）。
+セットアップ画面には、環境変数がそろっているかのチェック表と、鍵に使えるランダムな値も出ます。
+
+1. **Supabase** でプロジェクトを作り、SQL Editor で `supabase/migrations/` のSQLを番号順（0001→0003）に実行する。
+   ZIPと画像を置くバケットは最初の保存のときに自動で作られる
+2. 自分のPCの `.env.local` に次を書いて `npm run dev` を起動し、運営側にログインする
+   - `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`
+   - `OPS_SESSION_SECRET`、`DOWNLOAD_SIGNING_SECRET`（ランダムな値）
+   - `OPS_BASE_PATH`、`OPS_ALLOWED_EMAILS`、`OPS_DEV_PASSWORD`
+3. 運営側の「セットアップ」画面で、サイト名・公開側のURL・Resend のキーと差出人・GitHub のトークンを入れ、
+   テストメールと GitHub の接続確認をする（Resend は差出人のドメイン認証が必要）
+4. **Netlify** にこのリポジトリをつなぎ、環境変数に `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、
+   `OPS_SESSION_SECRET`、`DOWNLOAD_SIGNING_SECRET`（PC と同じ値）と `OPS_DISABLED=1` を設定してデプロイする
+   （本番で鍵が未設定だとエラーで止まる）
 5. 運営側の「閲覧者」画面で「登録済みのメールアドレスだけ」を選び、受講者のメールアドレスを貼り付けて、公開側のURLを共有する
 
 **Supabase の一時停止対策**: `.github/workflows/keepalive.yml` が3日おきに `/api/health` を叩きます。

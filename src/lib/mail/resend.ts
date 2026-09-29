@@ -1,4 +1,3 @@
-import { env } from "@/lib/env";
 import type { MailAdapter, MailMessage } from "./adapter";
 
 const ENDPOINT = "https://api.resend.com/emails";
@@ -11,9 +10,11 @@ export class ResendMail implements MailAdapter {
   private readonly apiKey: string;
   private readonly from: string;
 
-  constructor(private readonly fetcher: typeof fetch = fetch) {
-    this.apiKey = env.required("RESEND_API_KEY");
-    this.from = env.required("MAIL_FROM");
+  constructor(options: { apiKey: string; from: string }, private readonly fetcher: typeof fetch = fetch) {
+    if (!options.apiKey) throw new Error("Resend のAPIキーが設定されていません");
+    if (!options.from) throw new Error("差出人（MAIL_FROM）が設定されていません");
+    this.apiKey = options.apiKey;
+    this.from = options.from;
   }
 
   async send(message: MailMessage): Promise<void> {

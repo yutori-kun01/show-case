@@ -1,18 +1,21 @@
-import { env } from "@/lib/env";
+import { getConfig } from "@/lib/config";
 import type { MailAdapter } from "./adapter";
 import { LocalMail } from "./local";
 import { ResendMail } from "./resend";
 
-let cached: MailAdapter | null = null;
+let override: MailAdapter | null = null;
 
-/** RESEND_API_KEY があれば Resend、なければローカル代替を選ぶ。 */
-export function mail(): MailAdapter {
-  if (!cached) cached = env.mailDriver === "resend" ? new ResendMail() : new LocalMail();
-  return cached;
+/** セットアップ画面（なければ環境変数）に Resend のキーがあれば Resend、なければローカル代替を選ぶ。 */
+export async function mail(): Promise<MailAdapter> {
+  if (override) return override;
+  const config = await getConfig();
+  if (config.resendApiKey) return new ResendMail({ apiKey: config.resendApiKey, from: config.mailFrom ?? "" });
+  return new LocalMail();
 }
 
+/** テスト用に差し替える。 */
 export function setMail(adapter: MailAdapter | null): void {
-  cached = adapter;
+  override = adapter;
 }
 
 export type { MailAdapter, MailMessage } from "./adapter";

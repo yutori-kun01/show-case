@@ -2,7 +2,8 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { VIEWER_COOKIE, viewerMaxAge } from "@/lib/auth/session";
+import { VIEWER_COOKIE } from "@/lib/auth/session";
+import { getConfig } from "@/lib/config";
 import { safeNextPath } from "@/lib/auth/viewer";
 import { env } from "@/lib/env";
 import { AccessError, requestAccess, verifyAccess } from "@/lib/services/access";
@@ -21,7 +22,7 @@ async function signInWith(token: string, next: string): Promise<never> {
     sameSite: "lax",
     secure: env.isProduction,
     path: "/",
-    maxAge: viewerMaxAge(),
+    maxAge: (await getConfig()).viewerSessionDays * 24 * 60 * 60,
   });
   redirect(safeNextPath(next));
 }

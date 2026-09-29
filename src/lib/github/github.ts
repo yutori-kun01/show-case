@@ -5,6 +5,8 @@ import type { GithubAdapter, RemoteRepo } from "./adapter";
 
 /** GitHub App もしくは個人トークンで動く本番アダプタ。 */
 export class GithubApi implements GithubAdapter {
+  constructor(private readonly token?: string) {}
+
   private client(installationId?: string): Octokit {
     const appId = env.optional("GITHUB_APP_ID");
     const privateKey = env.optional("GITHUB_APP_PRIVATE_KEY");
@@ -18,7 +20,7 @@ export class GithubApi implements GithubAdapter {
         },
       });
     }
-    return new Octokit({ auth: env.optional("GITHUB_TOKEN") });
+    return new Octokit({ auth: this.token });
   }
 
   async listRepos(source: { login?: string; installationId?: string }): Promise<RemoteRepo[]> {

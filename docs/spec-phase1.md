@@ -127,7 +127,7 @@ APIキーの値は、チャットに書き出したり外部に送信したり�
 
 ## データモデル
 
-テーブルは7つです（閲覧制限の3つは表の末尾に追記）。すべての主要テーブルに `creator_id` を持たせ、SupabaseのRow Level Securityで出品者ごとに分離します。フェーズ1では出品者は1人ですが、将来の追加時にテーブル構成を変えずに済みます。
+テーブルは7つです（閲覧制限とセットアップの4つは表の末尾に追記）。すべての主要テーブルに `creator_id` を持たせ、SupabaseのRow Level Securityで出品者ごとに分離します。フェーズ1では出品者は1人ですが、将来の追加時にテーブル構成を変えずに済みます。
 
 | テーブル | 主な列 | 備考 |
 | --- | --- | --- |
@@ -141,8 +141,9 @@ APIキーの値は、チャットに書き出したり外部に送信したり�
 | `site_settings` | id, creator_id, access_mode, verify_email | 公開側の閲覧制限（誰でも・メール登録制・登録済みのみ） |
 | `viewers` | id, creator_id, email, status, source, note, last_login_at | 公開側を見られるメールアドレス |
 | `access_codes` | id, email, code_hash, expires_at, attempts, consumed_at | メールで送った確認コード（ハッシュのみ保存） |
+| `app_config` | id, creator_id, entries (JSON) | セットアップ画面の設定。APIキーなどは AES-256-GCM で暗号化して保存 |
 
-閲覧制限の3テーブルは後から追加したもので、読み書きはサーバー側（サービスロールキー）からだけ行います。
+閲覧制限とセットアップの4テーブルは後から追加したもので、読み書きはサーバー側（サービスロールキー）からだけ行います。
 
 公開側から読めるのは、statusが公開の `listings` と、公開中の `snapshots` の表示用の列だけにします。`creators.github_login`、`repos.full_name`、`commit_sha` は公開側のAPIでは返しません。
 

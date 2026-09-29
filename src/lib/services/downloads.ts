@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { getConfig } from "@/lib/config";
 import { storage } from "@/lib/storage";
 import { publishedSnapshot } from "./snapshots";
 import { getPublishedListing } from "./publicView";
@@ -27,7 +27,7 @@ export async function checkEntitlement(email: string): Promise<{ allowed: boolea
   const since = Date.now() - 60 * 60 * 1000;
   const history = await db().select("downloads", { email });
   const recent = history.filter((row) => Date.parse(row.created_at) >= since);
-  if (recent.length >= env.downloadRateLimitPerHour) {
+  if (recent.length >= (await getConfig()).downloadRateLimitPerHour) {
     return { allowed: false, reason: "短時間のダウンロードが多すぎます。しばらく待ってからお試しください" };
   }
   return { allowed: true };
@@ -54,6 +54,7 @@ export async function requestDownload(request: DownloadRequest): Promise<Downloa
   });
 
   const fileName = `${listing.slug}-v${snapshot.version}.zip`;
-  const url = await storage().signedUrl(snapshot.zip_path, env.downloadUrlTtlSeconds, fileName);
-  return { url, fileName, expiresInSeconds: env.downloadUrlTtlSeconds };
+  const { downloadUrlTtlSeconds } = await getConfig();
+  const url = await storage().signedUrl(snapshot.zip_path, downloadUrlTtlSeconds, fileName);
+  return { url, fileName, expiresInSeconds: downloadUrlTtlSeconds };
 }

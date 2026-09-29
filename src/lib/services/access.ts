@@ -2,9 +2,11 @@ import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import type { AccessMode, Creator, SiteSettings, Viewer, ViewerStatus } from "@/lib/db/types";
 import { env } from "@/lib/env";
+import { getConfig } from "@/lib/config";
 import { mail } from "@/lib/mail";
 import { createViewerToken, readViewerToken } from "@/lib/auth/session";
 import { isLocked, registerFailure } from "@/lib/auth/rateLimit";
+import { siteCreator } from "./creator";
 
 /**
  * 公開側の閲覧制限。
@@ -32,16 +34,7 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-/** フェーズ1は出品者1人。なければ作る。 */
-export async function siteCreator(): Promise<Creator> {
-  const existing = (await db().select("creators"))[0];
-  if (existing) return existing;
-  return db().insert("creators", {
-    display_name: env.optional("CREATOR_DISPLAY_NAME") ?? "運営",
-    github_login: env.optional("CREATOR_GITHUB_LOGIN") ?? null,
-    github_installation_id: env.optional("GITHUB_INSTALLATION_ID") ?? null,
-  });
-}
+export { siteCreator };
 
 export async function getSiteSettings(creator?: Creator): Promise<SiteSettings> {
   const owner = creator ?? (await siteCreator());
@@ -107,22 +100,23 @@ export async function requestAccess(rawEmail: string, ip = "unknown"): Promise<A
     consumed_at: null,
   });
 
-  await mail().send({
+  const config = await getConfig(creator);
+  await (await mail()).send({
     to: email,
-    subject: `【${env.siteName}】確認コード ${code}`,
+    subject: `【${config.siteName}】確認コード ${code}`,
     text: [
-      `${env.siteName} の確認コードです。`,
+      `${config.siteName} の確認コードです。`,
       "",
       `  ${code}`,
       "",
       "ログイン画面にこの6桁の数字を入力してください。有効期限は10分です。",
-      env.siteUrl ? `\n${env.siteUrl}/access` : "",
+      config.siteUrl ? `\n${config.siteUrl}/access` : "",
       "心当たりがない場合は、このメールを破棄してください。",
     ].join("\n"),
   });
 
   // ローカル代替のメールは届かないため、開発中だけ画面にコードを出す。
-  const devCode = env.mailDriver === "local" && !env.isProduction ? code : undefined;
+  const devCode = config.mailDriver === "local" && !env.isProduction ? code : undefined;
   return { status: "code_sent", email, devCode };
 }
 
@@ -204,7 +198,8 @@ async function completeSignIn(creator: Creator, settings: SiteSettings, email: s
   } else {
     throw new AccessError("登録されていないメールアドレスです");
   }
-  return createViewerToken(email);
+  const { viewerSessionDays } = await getConfig(creator);
+  return createViewerToken(email, viewerSessionDays * 24 * 60 * 60);
 }
 
 function hashCode(email: string, code: string): string {

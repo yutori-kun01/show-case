@@ -16,6 +16,7 @@ const EMPTY: Database = {
   site_settings: [],
   viewers: [],
   access_codes: [],
+  app_config: [],
 };
 
 /**

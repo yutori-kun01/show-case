@@ -160,6 +160,15 @@ export interface AccessCode {
   created_at: string;
 }
 
+/** 運営側の「セットアップ」画面で保存した設定。秘密の値は暗号化して入れる。 */
+export interface AppConfigRow {
+  id: string;
+  creator_id: string;
+  entries: Record<string, string>;
+  updated_at: string;
+  created_at: string;
+}
+
 export interface Database {
   creators: Creator[];
   repos: Repo[];
@@ -171,6 +180,7 @@ export interface Database {
   site_settings: SiteSettings[];
   viewers: Viewer[];
   access_codes: AccessCode[];
+  app_config: AppConfigRow[];
 }
 
 export type TableName = keyof Database;

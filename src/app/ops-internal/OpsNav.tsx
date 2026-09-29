@@ -8,6 +8,7 @@ export function OpsNav({ current }: { current: string }) {
     { href: "/listings", label: "公開ページ" },
     { href: "/mask", label: "マスク設定" },
     { href: "/viewers", label: "閲覧者" },
+    { href: "/settings", label: "セットアップ" },
     { href: "/reports", label: "通報" },
   ];
   return (

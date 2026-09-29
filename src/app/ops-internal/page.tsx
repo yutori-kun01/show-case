@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { opsUrl } from "@/lib/opsPath";
 import { getSiteSettings } from "@/lib/services/access";
+import { getConfig } from "@/lib/config";
 import { OpsNav } from "./OpsNav";
 import { signOutAction } from "./login/actions";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OpsHomePage() {
   const { email, creator } = await requireOpsSession();
-  const [repos, listings, snapshots, downloads, reports, viewers, settings] = await Promise.all([
+  const [repos, listings, snapshots, downloads, reports, viewers, settings, config] = await Promise.all([
     db().select("repos", { creator_id: creator.id }),
     db().select("listings", { creator_id: creator.id }),
     db().select("snapshots"),
@@ -19,6 +20,7 @@ export default async function OpsHomePage() {
     db().select("reports", { status: "open" }),
     db().select("viewers", { creator_id: creator.id }),
     getSiteSettings(creator),
+    getConfig(creator),
   ]);
 
   return (
@@ -70,8 +72,9 @@ export default async function OpsHomePage() {
       </div>
 
       <div className="panel tight small muted">
-        接続先: DB={env.dbDriver} ／ ストレージ={env.storageDriver} ／ GitHub={env.githubDriver} ／ メール={env.mailDriver}
-        {env.dbDriver === "local" && "（ローカル代替で動作中。本番では環境変数を設定してください）"}
+        接続先: DB={env.dbDriver} ／ ストレージ={env.storageDriver} ／ GitHub={config.githubDriver} ／ メール={config.mailDriver}
+        {env.dbDriver === "local" && "（ローカル代替で動作中）"}{" "}
+        <Link href={opsUrl("/settings")}>セットアップを確認する</Link>
       </div>
 
       <div className="row">

@@ -1,6 +1,8 @@
 import { requireOpsSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { getConfig } from "@/lib/config";
+import { opsUrl } from "@/lib/opsPath";
+import Link from "next/link";
 import { getSiteSettings } from "@/lib/services/access";
 import { OpsNav } from "../OpsNav";
 import {
@@ -29,7 +31,7 @@ function formatDate(value: string | null): string {
 export default async function ViewersPage({ searchParams }: Props) {
   const { creator } = await requireOpsSession();
   const params = await searchParams;
-  const settings = await getSiteSettings(creator);
+  const [settings, config] = await Promise.all([getSiteSettings(creator), getConfig(creator)]);
   const viewers = (await db().select("viewers", { creator_id: creator.id })).sort((a, b) =>
     b.created_at.localeCompare(a.created_at),
   );
@@ -70,13 +72,14 @@ export default async function ViewersPage({ searchParams }: Props) {
         </div>
         <button type="submit">保存する</button>
         <p className="small muted" style={{ marginBottom: 0 }}>
-          メール送信: {env.mailDriver === "resend" ? "Resend で送信中" : "未設定（コードはコンソールと .data/mail.log に出ます）"}
-          {env.siteUrl && (
+          メール送信: {config.mailDriver === "resend" ? "Resend で送信中" : "未設定（コードはコンソールと .data/mail.log に出ます）"}
+          {config.siteUrl && (
             <>
               {" "}
-              ／ 共有するURL: <code>{env.siteUrl}</code>
+              ／ 共有するURL: <code>{config.siteUrl}</code>
             </>
-          )}
+          )}{" "}
+          ／ <Link href={opsUrl("/settings")}>セットアップで変更</Link>
         </p>
       </form>
 

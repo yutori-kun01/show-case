@@ -50,17 +50,13 @@ export function readSessionToken(token: string | undefined): SessionPayload | nu
 
 export const SESSION_MAX_AGE = MAX_AGE_SECONDS;
 
-/** 閲覧者のセッション値。期間は VIEWER_SESSION_DAYS（既定30日）。 */
-export function createViewerToken(email: string, now = Date.now()): string {
-  return createToken("viewer", email, viewerMaxAge(), now);
+/** 閲覧者のセッション値。期間はセットアップ画面の「ログインの有効期間」（既定30日）。 */
+export function createViewerToken(email: string, maxAgeSeconds = 30 * 24 * 60 * 60, now = Date.now()): string {
+  return createToken("viewer", email, maxAgeSeconds, now);
 }
 
 export function readViewerToken(token: string | undefined): SessionPayload | null {
   return readToken("viewer", token);
-}
-
-export function viewerMaxAge(): number {
-  return env.viewerSessionDays * 24 * 60 * 60;
 }
 
 function signature(purpose: Purpose, body: string): string {
